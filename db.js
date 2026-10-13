@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS payouts (
   created_at TEXT DEFAULT (datetime('now')),
   paid_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, sess TEXT NOT NULL, expires INTEGER NOT NULL);
 `);
 
 // ---- Users ----

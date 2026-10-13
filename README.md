@@ -14,7 +14,7 @@ pay entry fees into daily tournaments and the top 3 scorers win **real money**.
 
 - Backend: Node.js + Express + built-in `node:sqlite` (no native modules needed)
 - Passwords: scrypt hashing via `node:crypto`
-- Sessions: `express-session` (in-memory store — use Redis in production)
+- Sessions: `express-session` stored in SQLite (same `data/hitbreaker.db` file as user accounts, so they survive restarts)
 - Frontend: HTML5 Canvas + Web Audio API, served by the same Express app
 
 ## Setup
@@ -76,8 +76,9 @@ pay entry fees into daily tournaments and the top 3 scorers win **real money**.
    developer.paypal.com → your app → request Payouts approval (requires a PayPal
    Business account in good standing). Until approved, live payouts will fail —
    winners will show as `failed` in the admin panel and you can retry/pay manually.
-3. Use a production session store (e.g. `connect-redis`) instead of the default
-   memory store, run behind HTTPS, and keep `.env` out of version control.
+3. Persist the `data/` directory (e.g. a Railway volume mounted at `/app/data`) so
+   accounts and sessions survive redeploys, run behind HTTPS, and keep `.env` out
+   of version control.
 
 ## Cash App note
 
