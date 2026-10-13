@@ -4,6 +4,7 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const db = require('./db');
+const SqliteStore = require('./sessionStore');
 const paypal = require('./paypal');
 const { hashPassword, verifyPassword, requireLogin, requireAdmin } = require('./auth');
 
@@ -12,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(session({
+  store: new SqliteStore(),
   secret: process.env.SESSION_SECRET || 'hit-breaker-dev-secret-change-me',
   resave: false,
   saveUninitialized: false,
