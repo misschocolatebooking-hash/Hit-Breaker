@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hit Breaker — Miss Chocolate</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="nav">
+  <a class="logo" href="/">HIT BREAKER <span>by Miss Chocolate</span></a>
+  <nav class="links" id="navLinks"></nav>
+</header>
+<div class="container">
+  <div class="hero">
+    <h1>HIT BREAKER</h1>
+    <p class="tagline">"When others say no, we say yes!" — Miss Chocolate</p>
+    <p>Tap the beats in time with the music. Top scorers in daily tournaments win real cash.</p>
+    <p style="margin-top:12px"><a class="btn" href="/tournaments.html">Enter a Tournament</a>
+    <a class="btn ghost" href="/leaderboard.html">Leaderboard</a></p>
+  </div>
+  <div id="gameWrap">
+    <canvas id="game"></canvas>
+    <div class="game-ui">
+      <p style="color:#8a744a;font-size:.9rem">Keys D F J K on desktop — tap the lanes on mobile.<br>
+      Perfect ±70ms = 100 pts • Good ±150ms = 50 pts • Build combos for multipliers.<br>
+      Earn 1+ star (40% accuracy) to unlock the next level.</p>
+      <p id="loginNote" class="hidden" style="margin-top:8px"><a href="/login.html">Log in</a> to save your score.</p>
+    </div>
+  </div>
+</div>
+<footer>© Hit Breaker • A Miss Chocolate experience • Play responsibly. Skill-based game.</footer>
+<script src="/common.js"></script>
+<script src="/game.js"></script>
+<script>
+refreshAuth().then((u) => {
+  if (!u) document.getElementById('loginNote').classList.remove('hidden');
+});
+</script>
+</body>
+</html>

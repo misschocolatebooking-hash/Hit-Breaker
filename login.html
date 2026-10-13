@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Hit Breaker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="nav">
+  <a class="logo" href="/">HIT BREAKER <span>by Miss Chocolate</span></a>
+  <nav class="links" id="navLinks"></nav>
+</header>
+<div class="container" style="max-width:420px">
+  <h2>Login</h2>
+  <div id="msg" class="alert err hidden"></div>
+  <div class="card">
+    <label>Email</label><input id="email" type="email" autocomplete="email">
+    <label>Password</label><input id="password" type="password" autocomplete="current-password">
+    <button class="btn" id="go" style="width:100%">Login</button>
+    <p style="margin-top:12px">No account? <a href="/signup.html">Sign up</a></p>
+  </div>
+</div>
+<script src="/common.js"></script>
+<script>
+refreshAuth();
+document.getElementById('go').onclick = async () => {
+  try {
+    await api('/api/auth/login', 'POST', {
+      email: document.getElementById('email').value,
+      password: document.getElementById('password').value,
+    });
+    const next = new URLSearchParams(location.search).get('next') || '/';
+    location.href = next;
+  } catch (e) { showAlert('msg', e.message); }
+};
+</script>
+</body>
+</html>

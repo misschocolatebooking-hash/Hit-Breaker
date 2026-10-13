@@ -1,0 +1,73 @@
+/* Hit Breaker — Miss Chocolate gold/black branding */
+:root {
+  --gold: #d4af37;
+  --gold-lt: #f5d78c;
+  --gold-dk: #966f23;
+  --bg: #0c0906;
+  --bg2: #171208;
+  --cream: #f0e1c3;
+  --red: #e05252;
+  --green: #5fc46a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: radial-gradient(ellipse at 50% 0%, #1d1508 0%, var(--bg) 60%);
+  color: var(--cream);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+a { color: var(--gold-lt); }
+header.nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 2px solid var(--gold-dk);
+  background: rgba(0,0,0,.5); position: sticky; top: 0; z-index: 50;
+}
+.logo { font-size: 1.5rem; font-weight: 800; color: var(--gold); letter-spacing: 1px; text-decoration: none; }
+.logo span { color: var(--cream); font-weight: 300; font-size: 1rem; }
+nav.links { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+nav.links a, nav.links button {
+  color: var(--cream); text-decoration: none; font-size: .95rem;
+  background: none; border: none; cursor: pointer; font-family: inherit;
+}
+nav.links a:hover { color: var(--gold); }
+.container { max-width: 900px; margin: 0 auto; padding: 24px 16px 60px; }
+h1, h2 { color: var(--gold); margin-bottom: 12px; }
+.card {
+  background: var(--bg2); border: 1px solid var(--gold-dk); border-radius: 12px;
+  padding: 20px; margin-bottom: 16px;
+}
+.btn {
+  display: inline-block; background: linear-gradient(180deg, var(--gold-lt), var(--gold));
+  color: #1a1206; font-weight: 700; border: none; border-radius: 8px;
+  padding: 12px 24px; font-size: 1rem; cursor: pointer; text-decoration: none;
+}
+.btn:hover { filter: brightness(1.1); }
+.btn.ghost { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+input, select {
+  width: 100%; padding: 12px; margin: 6px 0 14px; border-radius: 8px;
+  border: 1px solid var(--gold-dk); background: #0a0805; color: var(--cream); font-size: 1rem;
+}
+label { font-size: .9rem; color: var(--gold-lt); }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #2a2114; font-size: .92rem; }
+th { color: var(--gold); }
+.tagline { text-align: center; color: var(--gold-lt); font-style: italic; margin: 8px 0 24px; }
+.hero { text-align: center; padding: 30px 10px; }
+.hero h1 { font-size: 2.6rem; letter-spacing: 2px; }
+.alert { padding: 12px; border-radius: 8px; margin-bottom: 14px; }
+.alert.err { background: #3a1414; border: 1px solid var(--red); color: #ffb3b3; }
+.alert.ok { background: #12331a; border: 1px solid var(--green); color: #b8f0bd; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat { flex: 1; min-width: 130px; text-align: center; }
+.stat .num { font-size: 1.8rem; color: var(--gold); font-weight: 800; }
+.stat .lbl { font-size: .8rem; color: #b9a06a; }
+/* game canvas */
+#gameWrap { max-width: 520px; margin: 0 auto; }
+#game { width: 100%; border: 2px solid var(--gold-dk); border-radius: 12px; background: #050403; touch-action: none; display: block; }
+.game-ui { text-align: center; margin: 12px 0; }
+.hidden { display: none !important; }
+.tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.tabs button { flex: 1; }
+.tabs button.active { background: linear-gradient(180deg, var(--gold-lt), var(--gold)); color: #1a1206; }
+footer { text-align: center; padding: 30px; color: #8a744a; font-size: .85rem; }

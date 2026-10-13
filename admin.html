@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Hit Breaker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="nav">
+  <a class="logo" href="/">HIT BREAKER <span>by Miss Chocolate</span></a>
+  <nav class="links" id="navLinks"></nav>
+</header>
+<div class="container">
+  <h2>Admin Dashboard</h2>
+  <div id="msg" class="alert err hidden"></div>
+
+  <div class="card">
+    <h3>Cash App — Manual Payout Queue</h3>
+    <p style="color:#8a744a;font-size:.9rem">Send these via Cash App yourself, then click "Mark Paid".</p>
+    <table><thead><tr><th>Player</th><th>$Cashtag</th><th>Amount</th><th>Tournament</th><th></th></tr></thead>
+    <tbody id="cashappRows"><tr><td colspan="5">Loading…</td></tr></tbody></table>
+  </div>
+
+  <div class="card">
+    <h3>All Payouts</h3>
+    <table><thead><tr><th>Player</th><th>Amount</th><th>Method</th><th>Destination</th><th>Status</th><th>Tournament</th></tr></thead>
+    <tbody id="payoutRows"><tr><td colspan="6">Loading…</td></tr></tbody></table>
+  </div>
+
+  <div class="card">
+    <h3>Tournaments</h3>
+    <table><thead><tr><th>Name</th><th>Entry</th><th>Entries</th><th>Pot</th><th>Ends</th><th>Status</th><th></th></tr></thead>
+    <tbody id="tRows"><tr><td colspan="7">Loading…</td></tr></tbody></table>
+    <h4 style="margin-top:16px;color:var(--gold)">Create Tournament</h4>
+    <div class="row">
+      <div style="flex:2"><label>Name</label><input id="tName" placeholder="Weekend Special"></div>
+      <div style="flex:1"><label>Entry fee (cents)</label><input id="tFee" type="number" value="500"></div>
+      <div style="flex:1"><label>Ends at</label><input id="tEnds" type="datetime-local"></div>
+    </div>
+    <button class="btn" id="tCreate">Create</button>
+  </div>
+
+  <div class="card">
+    <h3>Users</h3>
+    <table><thead><tr><th>Username</th><th>Email</th><th>Payout</th><th>Destination</th><th>Admin</th></tr></thead>
+    <tbody id="uRows"><tr><td colspan="5">Loading…</td></tr></tbody></table>
+  </div>
+</div>
+<script src="/common.js"></script>
+<script>
+async function load() {
+  const u = await refreshAuth();
+  if (!u || !u.is_admin) { document.getElementById('msg').textContent = 'Admin only.'; document.getElementById('msg').classList.remove('hidden'); return; }
+
+  const manual = await api('/api/admin/payouts?status=pending_manual');
+  document.getElementById('cashappRows').innerHTML = manual.length ? manual.map((p) => `
+    <tr><td>${esc(p.username)}</td><td><b>${esc(p.destination || p.cashtag || '—')}</b></td>
+    <td>${money(p.amount_cents)}</td><td>${esc(p.tournament_name)}</td>
+    <td><button class="btn" onclick="markPaid(${p.id})">Mark Paid</button></td></tr>`).join('')
+    : '<tr><td colspan="5">Queue is empty. 🎉</td></tr>';
+
+  const payouts = await api('/api/admin/payouts');
+  document.getElementById('payoutRows').innerHTML = payouts.length ? payouts.map((p) => `
+    <tr><td>${esc(p.username)}</td><td>${money(p.amount_cents)}</td><td>${p.method}</td>
+    <td>${esc(p.destination || '—')}</td><td>${esc(p.status)}</td><td>${esc(p.tournament_name)}</td></tr>`).join('')
+    : '<tr><td colspan="6">No payouts yet.</td></tr>';
+
+  const ts = await api('/api/admin/tournaments');
+  document.getElementById('tRows').innerHTML = ts.map((t) => `
+    <tr><td>${esc(t.name)}</td><td>${money(t.entry_fee_cents)}</td><td>${t.entries}</td>
+    <td>${money(t.pot_cents)}</td><td>${esc(t.ends_at)}</td><td>${t.status}</td>
+    <td>${t.status === 'open' ? `<button class="btn ghost" onclick="closeT(${t.id})">Close & Pay</button>` : ''}</td></tr>`).join('');
+
+  const users = await api('/api/admin/users');
+  document.getElementById('uRows').innerHTML = users.map((x) => `
+    <tr><td>${esc(x.username)}</td><td>${esc(x.email)}</td><td>${x.payout_method}</td>
+    <td>${esc(x.paypal_email || x.cashtag || '—')}</td><td>${x.is_admin ? '✓' : ''}</td></tr>`).join('');
+}
+async function markPaid(id) {
+  if (!confirm('Confirm you sent this Cash App payment manually?')) return;
+  await api(`/api/admin/payouts/${id}/mark-paid`, 'POST');
+  load();
+}
+async function closeT(id) {
+  if (!confirm('Close this tournament and pay winners now?')) return;
+  const r = await api(`/api/admin/tournaments/${id}/close`, 'POST');
+  alert(r.ok ? `Closed. Pot: ${money(r.pot_cents)}, winners: ${r.winners.length}` : (r.error || 'Error'));
+  load();
+}
+document.getElementById('tCreate').onclick = async () => {
+  try {
+    await api('/api/admin/tournaments', 'POST', {
+      name: document.getElementById('tName').value,
+      entry_fee_cents: Number(document.getElementById('tFee').value),
+      ends_at: document.getElementById('tEnds').value.replace('T', ' ') + ':00',
+    });
+    load();
+  } catch (e) { showAlert('msg', e.message); }
+};
+load();
+</script>
+</body>
+</html>

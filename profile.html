@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Hit Breaker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="nav">
+  <a class="logo" href="/">HIT BREAKER <span>by Miss Chocolate</span></a>
+  <nav class="links" id="navLinks"></nav>
+</header>
+<div class="container">
+  <h2 id="title">Profile</h2>
+  <div id="msg" class="alert err hidden"></div>
+  <div class="card">
+    <h3>Stats</h3>
+    <div class="row" id="stats"></div>
+  </div>
+  <div class="card">
+    <h3>Payout Settings</h3>
+    <p style="color:#8a744a;font-size:.9rem;margin-bottom:10px">Winners are paid automatically to PayPal, or manually via Cash App. Set your details here before you win!</p>
+    <label>How do you want to be paid?</label>
+    <select id="method"><option value="paypal">PayPal (automatic)</option><option value="cashapp">Cash App (manual)</option></select>
+    <label>PayPal email (for PayPal payouts)</label><input id="paypalEmail" type="email">
+    <label>$Cashtag (for Cash App payouts, e.g. $MissChocolate)</label><input id="cashtag">
+    <button class="btn" id="save">Save Payout Settings</button>
+  </div>
+  <div class="card">
+    <h3>My Winnings</h3>
+    <table><thead><tr><th>Tournament</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody id="winnings"><tr><td colspan="5">Loading…</td></tr></tbody></table>
+  </div>
+</div>
+<script src="/common.js"></script>
+<script>
+async function load() {
+  const u = await refreshAuth();
+  if (!u) { location.href = '/login.html?next=/profile.html'; return; }
+  document.getElementById('title').textContent = 'Profile — ' + u.username;
+  document.getElementById('method').value = u.payout_method || 'paypal';
+  document.getElementById('paypalEmail').value = u.paypal_email || '';
+  document.getElementById('cashtag').value = u.cashtag || '';
+  const { stats, payouts } = await api('/api/profile');
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="num">${stats.best_score.toLocaleString()}</div><div class="lbl">Best Score</div></div>
+    <div class="stat"><div class="num">${stats.games}</div><div class="lbl">Games</div></div>
+    <div class="stat"><div class="num">${Number(stats.avg_accuracy).toFixed(1)}%</div><div class="lbl">Avg Accuracy</div></div>
+    <div class="stat"><div class="num">${stats.stars}</div><div class="lbl">Stars</div></div>
+    <div class="stat"><div class="num">${money(stats.total_won_cents)}</div><div class="lbl">Total Won</div></div>`;
+  document.getElementById('winnings').innerHTML = payouts.length ? payouts.map((p) => `
+    <tr><td>${esc(p.tournament_name)}</td><td>${money(p.amount_cents)}</td><td>${p.method}</td>
+    <td>${esc(p.status)}</td><td>${esc(p.paid_at || p.created_at)}</td></tr>`).join('')
+    : '<tr><td colspan="5">No winnings yet — go break some hits!</td></tr>';
+}
+document.getElementById('save').onclick = async () => {
+  try {
+    await api('/api/auth/profile', 'PUT', {
+      payout_method: document.getElementById('method').value,
+      paypal_email: document.getElementById('paypalEmail').value,
+      cashtag: document.getElementById('cashtag').value,
+    });
+    showAlert('msg', 'Payout settings saved.', true);
+    refreshAuth();
+  } catch (e) { showAlert('msg', e.message); }
+};
+load();
+</script>
+</body>
+</html>

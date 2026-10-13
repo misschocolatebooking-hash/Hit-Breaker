@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tournaments — Hit Breaker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="nav">
+  <a class="logo" href="/">HIT BREAKER <span>by Miss Chocolate</span></a>
+  <nav class="links" id="navLinks"></nav>
+</header>
+<div class="container">
+  <h2>Daily Tournaments</h2>
+  <p class="tagline">Pay the entry fee, post the top score, win real cash. 80% of entries go to the prize pot — top 3 split it 50/30/20.</p>
+  <div id="msg" class="alert err hidden"></div>
+  <div id="list"></div>
+  <div id="paypalBox" class="card hidden">
+    <h3>Pay Entry Fee</h3>
+    <p id="payDesc"></p>
+    <div id="paypalButtons"></div>
+  </div>
+</div>
+<script src="/common.js"></script>
+<script>
+let cfg = {};
+async function load() {
+  cfg = await api('/api/config');
+  const list = await api('/api/tournaments');
+  const el = document.getElementById('list');
+  if (!list.length) { el.innerHTML = '<div class="card">No open tournaments right now. Check back soon.</div>'; return; }
+  el.innerHTML = list.map((t) => `
+    <div class="card">
+      <h3>${esc(t.name)}</h3>
+      <div class="row">
+        <div class="stat"><div class="num">${money(t.entry_fee_cents)}</div><div class="lbl">Entry</div></div>
+        <div class="stat"><div class="num">${money(Math.round(t.pot_preview_cents || 0))}</div><div class="lbl">Prize pot (so far)</div></div>
+        <div class="stat"><div class="num">${t.entries}</div><div class="lbl">Players</div></div>
+      </div>
+      <p style="color:#8a744a;margin:8px 0">Ends: ${esc(t.ends_at)}</p>
+      ${t.entered
+        ? `<a class="btn" href="/?tournament=${t.id}">Play Now</a>`
+        : `<button class="btn" onclick="enterTournament(${t.id}, ${t.entry_fee_cents}, '${esc(t.name)}')">Enter — ${money(t.entry_fee_cents)}</button>`}
+    </div>`).join('');
+}
+function enterTournament(id, fee, name) {
+  if (!currentUser) { location.href = '/login.html?next=/tournaments.html'; return; }
+  document.getElementById('paypalBox').classList.remove('hidden');
+  document.getElementById('payDesc').textContent = `${name} — entry fee ${money(fee)}`;
+  document.getElementById('paypalButtons').innerHTML = '';
+  if (!cfg.paypalClientId) { showAlert('msg', 'PayPal is not configured on this server yet.'); return; }
+  const s = document.createElement('script');
+  s.src = `https://www.paypal.com/sdk/js?client-id=${cfg.paypalClientId}&currency=USD`;
+  s.onload = () => {
+    paypal.Buttons({
+      createOrder: async () => {
+        const r = await api(`/api/tournaments/${id}/create-order`, 'POST');
+        return r.orderId;
+      },
+      onApprove: async (data) => {
+        try {
+          await api(`/api/tournaments/${id}/capture-order`, 'POST', { orderId: data.orderID });
+          location.href = `/?tournament=${id}`;
+        } catch (e) { showAlert('msg', e.message); }
+      },
+      onError: (e) => showAlert('msg', 'PayPal error: ' + e),
+    }).render('#paypalButtons');
+  };
+  document.head.appendChild(s);
+  document.getElementById('paypalBox').scrollIntoView();
+}
+refreshAuth().then(load);
+</script>
+</body>
+</html>
