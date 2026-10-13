@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0"
+  },
+  "description": "Hit Breaker \u2014 skill-based rhythm arcade game with real-money tournament payouts (Miss Chocolate)",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "server.js",
+  "name": "hit-breaker",
+  "scripts": {
+    "dev": "node --watch --experimental-sqlite server.js",
+    "start": "node --experimental-sqlite server.js"
+  },
+  "version": "1.0.0"
+}
