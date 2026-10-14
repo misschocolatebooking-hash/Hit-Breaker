@@ -298,7 +298,7 @@ function endGame() {
   el.innerHTML = `
     <h2>${won ? '🏆 YOU WIN!' : '😞 You lose'}</h2>
     <p style="font-size:1.3em;margin:10px 0">Us: ${scores.us} — Them: ${scores.them}</p>
-    <p style="color:#aaa;margin-bottom:20px">${won ? 'Nice playing! Your $1.00 ad earning is safe.' : 'Better luck next time!'}</p>
+    <p style="color:#aaa;margin-bottom:20px">${won ? 'Nice playing! Your $0.02 ad earning is safe.' : 'Better luck next time!'}</p>
     <button class="btn" onclick="location.href='/free.html'">Play Again (Watch Ad)</button>
     <button class="btn" onclick="location.href='/'" style="background:#333;color:#d4af37">Home</button>`;
   setMsg('');

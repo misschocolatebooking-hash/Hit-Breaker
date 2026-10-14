@@ -262,7 +262,7 @@ function listUsers() {
 
 // ---- Free play / ads ----
 function recordAdView(userId, adType) {
-  const earnings = 100; // $1.00 per ad view
+  const earnings = 2; // $0.02 per ad view
   const r = db.prepare('INSERT INTO ad_views (user_id, ad_type, earnings_cents) VALUES (?,?,?)').run(userId, adType || 'rewarded', earnings);
   return { id: Number(r.lastInsertRowid), earnings_cents: earnings };
 }
