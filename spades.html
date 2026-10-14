@@ -32,6 +32,8 @@
   .card.playable { border: 3px solid #4ade80; }
   .card.playable:active { transform: scale(1.1); }
   .card .suit { font-size: 1.3em; }
+  @keyframes dealIn { from { transform: translateY(28px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+  .card.deal-anim { animation: dealIn 0.22s ease-out; }
   #controls { text-align: center; padding: 10px; }
   .btn { background: linear-gradient(135deg, #d4af37, #f5d76e); color: #000; font-weight: 900; padding: 12px 30px; border: none; border-radius: 50px; cursor: pointer; font-size: 1em; margin: 5px; }
   .btn:disabled { opacity: 0.4; }
@@ -126,14 +128,16 @@ function aiBid(hand) {
 
 function setMsg(t) { document.getElementById('msg').textContent = t; }
 
-function renderHand() {
+function renderHand(shown, animateLast) {
   const el = document.getElementById('hand');
   el.innerHTML = '';
   const leadSuit = currentTrick.length ? currentTrick[0].card.suit : null;
   const hasLead = leadSuit ? hands[0].some(c => c.suit === leadSuit) : false;
-  hands[0].forEach((c, i) => {
+  const cards = (shown == null) ? hands[0] : hands[0].slice(0, shown);
+  cards.forEach((c, i) => {
     const d = document.createElement('div');
     d.className = 'card' + (isRed(c) ? ' red' : '');
+    if (animateLast && i === cards.length - 1) d.classList.add('deal-anim');
     d.innerHTML = `<div>${c.rank}</div><div class="suit">${c.suit}</div>`;
     let playable = false;
     if (playerTurn && gameActive) {
@@ -311,6 +315,21 @@ function startHand() {
   // AI bids
   bids[1] = aiBid(hands[1]); bids[2] = aiBid(hands[2]); bids[3] = aiBid(hands[3]);
   renderTable();
+  // animated deal — cards slide in one by one
+  document.getElementById('hand').innerHTML = '';
+  setMsg('Dealing...');
+  let di = 0;
+  const dealTimer = setInterval(() => {
+    di++;
+    renderHand(di, true);
+    if (di >= hands[0].length) {
+      clearInterval(dealTimer);
+      showBidPanel();
+    }
+  }, 90);
+}
+
+function showBidPanel() {
   // player bid
   const panel = document.getElementById('bidPanel');
   panel.classList.remove('hidden');
