@@ -190,7 +190,7 @@ function aiChooseCard(pi) {
     // try to win cheaply: lowest winning card, else lowest
     const trickCards = currentTrick.map(t => t.card);
     const high = highestCard(trickCards, leadSuit);
-    const winners = follow.filter(c => cardVal(c) > cardVal(high.card));
+    const winners = follow.filter(c => cardVal(c) > cardVal(high));
     const pick = winners.length ? winners.sort((a,b) => cardVal(a)-cardVal(b))[0]
                                 : follow.sort((a,b) => cardVal(a)-cardVal(b))[0];
     return hand.indexOf(pick);
@@ -232,9 +232,9 @@ function playCard(pi, ci) {
   currentTrick.push({ player: pi, card });
   renderTable(); renderHand();
   if (currentTrick.length === 4) {
-    setTimeout(finishTrick, 450);
+    setTimeout(finishTrick, 250);
   } else {
-    setTimeout(nextTurn, 250);
+    setTimeout(nextTurn, 150);
   }
 }
 
@@ -256,7 +256,7 @@ function finishTrick() {
   if (hands[0].length === 0) {
     setTimeout(scoreHand, 800);
   } else {
-    setTimeout(nextTurn, 400);
+    setTimeout(nextTurn, 200);
   }
 }
 
@@ -272,7 +272,7 @@ function nextTurn() {
     setTimeout(() => {
       const ci = aiChooseCard(pi);
       playCard(pi, ci);
-    }, 350);
+    }, 200);
   }
 }
 
