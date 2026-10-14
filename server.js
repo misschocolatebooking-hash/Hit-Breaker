@@ -4,7 +4,6 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const db = require('./db');
-const SqliteStore = require('./sessionStore');
 const paypal = require('./paypal');
 const { hashPassword, verifyPassword, requireLogin, requireAdmin } = require('./auth');
 
@@ -13,7 +12,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(session({
-  store: new SqliteStore(),
   secret: process.env.SESSION_SECRET || 'hit-breaker-dev-secret-change-me',
   resave: false,
   saveUninitialized: false,
@@ -259,6 +257,28 @@ app.post('/api/scores', requireLogin, (req, res) => {
 app.get('/api/leaderboard', (req, res) => res.json(db.leaderboard(null)));
 app.get('/api/leaderboard/daily', (req, res) => res.json(db.leaderboard('-1 day')));
 app.get('/api/leaderboard/weekly', (req, res) => res.json(db.leaderboard('-7 days')));
+app.get('/api/leaderboard/free', (req, res) => res.json(db.getAdLeaderboard(50)));
+
+// ---- free play / ads ----
+app.post('/api/ads/view', requireLogin, (req, res) => {
+  const { adType } = req.body || {};
+  const view = db.recordAdView(req.session.userId, adType);
+  res.json(view);
+});
+app.post('/api/free/start', requireLogin, (req, res) => {
+  const { adViewId } = req.body || {};
+  if (!adViewId) return res.status(400).json({ error: 'Watch an ad first' });
+  const view = db.db.prepare('SELECT * FROM ad_views WHERE id = ? AND user_id = ?').get(adViewId, req.session.userId);
+  if (!view) return res.status(400).json({ error: 'Invalid ad view' });
+  const used = db.db.prepare('SELECT 1 FROM free_plays WHERE ad_view_id = ?').get(adViewId);
+  if (used) return res.status(400).json({ error: 'Ad already used' });
+  db.recordFreePlay(req.session.userId, adViewId);
+  const token = db.issueToken(req.session.userId, null);
+  res.json({ token });
+});
+app.get('/api/ads/earnings', requireLogin, (req, res) => {
+  res.json(db.getAdEarnings(req.session.userId));
+});
 
 // ---- profile ----
 app.get('/api/profile', requireLogin, (req, res) => {

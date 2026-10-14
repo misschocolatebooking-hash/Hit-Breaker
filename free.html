@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Play — Hit Breaker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; }
+  .nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #111; border-bottom: 2px solid #d4af37; }
+  .nav a { color: #d4af37; text-decoration: none; font-weight: bold; }
+  .nav .logo { font-size: 1.4em; font-weight: 900; color: #d4af37; }
+  .container { max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
+  h1 { color: #d4af37; margin: 20px 0 10px; font-size: 2em; }
+  .subtitle { color: #aaa; margin-bottom: 25px; }
+  .earnings-card { background: #1a1a1a; border: 2px solid #d4af37; border-radius: 12px; padding: 20px; margin: 20px 0; }
+  .earnings-card .amount { font-size: 2.5em; color: #d4af37; font-weight: 900; }
+  .earnings-card .label { color: #aaa; font-size: 0.9em; margin-top: 5px; }
+  .btn { display: inline-block; background: linear-gradient(135deg, #d4af37, #f5d76e); color: #000; font-weight: 900; font-size: 1.2em; padding: 15px 40px; border: none; border-radius: 50px; cursor: pointer; margin: 10px; text-transform: uppercase; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: #333; color: #d4af37; }
+  .ad-container { background: #1a1a1a; border: 1px dashed #555; border-radius: 8px; padding: 30px 15px; margin: 20px 0; min-height: 280px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .ad-label { font-size: 0.75em; color: #666; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+  .hidden { display: none !important; }
+  .info-box { background: #151515; border-left: 4px solid #d4af37; padding: 15px; margin: 15px 0; text-align: left; font-size: 0.9em; color: #ccc; }
+  .info-box strong { color: #d4af37; }
+  #status { margin: 15px 0; min-height: 24px; color: #f5d76e; }
+</style>
+</head>
+<body>
+<div class="nav">
+  <a href="/">← Home</a>
+  <div class="logo">🎮 HIT BREAKER</div>
+  <a href="/profile.html">Profile</a>
+</div>
+<div class="container">
+  <h1>🆓 Free Play</h1>
+  <p class="subtitle">Watch a short ad, play free, earn real cash!</p>
+
+  <div class="earnings-card">
+    <div class="amount" id="earnings">$0.00</div>
+    <div class="label">Your ad earnings (<span id="adViews">0</span> ads watched)</div>
+  </div>
+
+  <div id="step1">
+    <p style="margin-bottom:15px">Step 1: Watch this ad to unlock a free game</p>
+    <div class="ad-container" id="adSlot">
+      <div class="ad-label">Advertisement</div>
+      <div id="adsense-ad">
+        <!-- Google AdSense rewarded ad goes here after approval -->
+        <p style="color:#888" id="adPlaceholder">📺 Your ad will play here<br><small>(AdSense integration pending approval)</small></p>
+      </div>
+      <button class="btn" id="watchAdBtn" style="margin-top:15px">▶ Watch Ad</button>
+    </div>
+  </div>
+
+  <div id="step2" class="hidden">
+    <p style="color:#4ade80; font-size:1.2em; margin: 20px 0;">✅ Ad watched! You're unlocked.</p>
+    <button class="btn" id="playBtn">🎮 Play Free Now</button>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="info-box">
+    <strong>How it works:</strong><br>
+    • Watch a short ad → play one free game<br>
+    • Earn <strong>$1.00 per ad</strong> watched<br>
+    • Earnings add up and can be cashed out via PayPal or Cash App<br>
+    • No entry fee, no risk — just play and earn!
+  </div>
+
+  <a href="/tournaments.html" class="btn btn-secondary" style="font-size:0.9em; padding:10px 25px; text-decoration:none;">💰 Play Paid Tournaments</a>
+</div>
+
+<script src="/common.js"></script>
+<script>
+let adViewId = null;
+
+async function loadEarnings() {
+  try {
+    const e = await api('/api/ads/earnings');
+    document.getElementById('earnings').textContent = '$' + (e.balance_cents / 100).toFixed(2);
+    document.getElementById('adViews').textContent = e.views;
+  } catch {}
+}
+loadEarnings();
+
+document.getElementById('watchAdBtn').onclick = async () => {
+  const btn = document.getElementById('watchAdBtn');
+  const status = document.getElementById('status');
+  btn.disabled = true;
+  btn.textContent = 'Playing ad...';
+  status.textContent = 'Ad playing — please wait...';
+
+  // Simulate rewarded ad (replace with real AdSense rewarded ad callback)
+  // In production: google adsense rewarded ad onRewardedAdComplete -> record view
+  setTimeout(async () => {
+    try {
+      const view = await api('/api/ads/view', 'POST', { adType: 'rewarded' });
+      adViewId = view.id;
+      document.getElementById('step1').classList.add('hidden');
+      document.getElementById('step2').classList.remove('hidden');
+      status.textContent = '';
+      loadEarnings();
+    } catch (e) {
+      status.textContent = 'Error: ' + e.message;
+      btn.disabled = false;
+      btn.textContent = '▶ Watch Ad';
+    }
+  }, 3000);
+};
+
+document.getElementById('playBtn').onclick = async () => {
+  const status = document.getElementById('status');
+  try {
+    const { token } = await api('/api/free/start', 'POST', { adViewId });
+    sessionStorage.setItem('gameToken', token);
+    sessionStorage.setItem('freePlay', '1');
+    location.href = '/spades.html';
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+  }
+};
+</script>
+</body>
+</html>

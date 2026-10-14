@@ -78,8 +78,19 @@ CREATE TABLE IF NOT EXISTS payouts (
   created_at TEXT DEFAULT (datetime('now')),
   paid_at TEXT
 );
-
-CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, sess TEXT NOT NULL, expires INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS ad_views (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  ad_type TEXT DEFAULT 'rewarded' CHECK (ad_type IN ('rewarded','banner','interstitial')),
+  earnings_cents INTEGER NOT NULL DEFAULT 2,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS free_plays (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  ad_view_id INTEGER REFERENCES ad_views(id),
+  created_at TEXT DEFAULT (datetime('now'))
+);
 `);
 
 // ---- Users ----
@@ -249,10 +260,36 @@ function listUsers() {
   return db.prepare('SELECT id, username, email, payout_method, paypal_email, cashtag, is_admin, created_at FROM users ORDER BY id').all();
 }
 
+// ---- Free play / ads ----
+function recordAdView(userId, adType) {
+  const earnings = 100; // $1.00 per ad view
+  const r = db.prepare('INSERT INTO ad_views (user_id, ad_type, earnings_cents) VALUES (?,?,?)').run(userId, adType || 'rewarded', earnings);
+  return { id: Number(r.lastInsertRowid), earnings_cents: earnings };
+}
+function recordFreePlay(userId, adViewId) {
+  db.prepare('INSERT INTO free_plays (user_id, ad_view_id) VALUES (?,?)').run(userId, adViewId);
+}
+function getAdEarnings(userId) {
+  const row = db.prepare(`SELECT COALESCE(SUM(earnings_cents),0) AS total_cents, COUNT(*) AS views FROM ad_views WHERE user_id = ?`).get(userId);
+  const paid = db.prepare(`SELECT COALESCE(SUM(amount_cents),0) AS paid_cents FROM payouts WHERE user_id = ? AND note LIKE 'ad-%' AND status IN ('sent','paid','pending_manual')`).get(userId);
+  return { total_cents: row.total_cents, views: row.views, paid_cents: paid.paid_cents, balance_cents: row.total_cents - paid.paid_cents };
+}
+function getAdLeaderboard(limit) {
+  return db.prepare(`
+    SELECT u.username, COUNT(a.id) AS views, COALESCE(SUM(a.earnings_cents),0) AS earnings_cents,
+           COALESCE(MAX(s.score),0) AS best_score
+    FROM users u
+    JOIN ad_views a ON a.user_id = u.id
+    LEFT JOIN scores s ON s.user_id = u.id AND s.tournament_id IS NULL
+    GROUP BY u.id ORDER BY earnings_cents DESC LIMIT ?
+  `).all(limit || 50);
+}
+
 module.exports = {
   db, getUserByEmail, getUserById, getUserByUsername, createUser, updateUserProfile,
   createTournament, getTournament, listOpenTournaments, listAllTournaments,
   hasEntry, addEntry, setTournamentStatus,
   issueToken, consumeToken, saveScore, leaderboard, tournamentStandings,
   userStats, userPayouts, createPayout, listPayouts, markPayoutPaid, markPayoutFailed, listUsers,
+  recordAdView, recordFreePlay, getAdEarnings, getAdLeaderboard,
 };

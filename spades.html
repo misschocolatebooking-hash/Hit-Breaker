@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hit High Breaker — Spades</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0d2818; color: #fff; min-height: 100vh; overflow-x: hidden; }
+  .nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #081a10; border-bottom: 2px solid #d4af37; }
+  .nav a { color: #d4af37; text-decoration: none; font-weight: bold; font-size: 0.9em; }
+  .logo { font-weight: 900; color: #d4af37; }
+  #table { position: relative; width: 100%; max-width: 700px; height: 62vh; min-height: 380px; margin: 0 auto; }
+  .player-area { position: absolute; text-align: center; }
+  .player-area.top { top: 8px; left: 50%; transform: translateX(-50%); }
+  .player-area.left { left: 8px; top: 42%; transform: translateY(-50%); }
+  .player-area.right { right: 8px; top: 42%; transform: translateY(-50%); }
+  .player-area.bottom { bottom: 118px; left: 50%; transform: translateX(-50%); }
+  .pname { font-size: 0.8em; color: #d4af37; font-weight: bold; margin-bottom: 4px; }
+  .pname .bid { color: #fff; background: #d4af37; color: #000; border-radius: 10px; padding: 0 8px; margin-left: 4px; font-size: 0.9em; }
+  .trick-count { font-size: 0.75em; color: #aaa; }
+  .center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 220px; height: 150px; }
+  .played-card { position: absolute; width: 56px; height: 78px; border-radius: 8px; background: #fff; color: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.5); font-size: 0.85em; }
+  .played-card.red { color: #c00; }
+  .played-card.top { top: 0; left: 50%; transform: translateX(-50%); }
+  .played-card.left { left: 0; top: 50%; transform: translateY(-50%); }
+  .played-card.right { right: 0; top: 50%; transform: translateY(-50%); }
+  .played-card.bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+  #hand { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; padding: 10px; max-width: 700px; margin: 0 auto; min-height: 100px; }
+  .card { width: 52px; height: 74px; border-radius: 8px; background: #fff; color: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); transition: transform 0.15s; user-select: none; font-size: 0.9em; }
+  .card.red { color: #c00; }
+  .card.playable { border: 3px solid #4ade80; }
+  .card.playable:active { transform: scale(1.1); }
+  .card .suit { font-size: 1.3em; }
+  #controls { text-align: center; padding: 10px; }
+  .btn { background: linear-gradient(135deg, #d4af37, #f5d76e); color: #000; font-weight: 900; padding: 12px 30px; border: none; border-radius: 50px; cursor: pointer; font-size: 1em; margin: 5px; }
+  .btn:disabled { opacity: 0.4; }
+  #bidPanel { background: #081a10; border: 2px solid #d4af37; border-radius: 12px; padding: 20px; max-width: 400px; margin: 20px auto; text-align: center; }
+  #bidPanel h3 { color: #d4af37; margin-bottom: 12px; }
+  .bid-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+  .bid-btns button { width: 44px; height: 44px; border-radius: 50%; border: 2px solid #d4af37; background: transparent; color: #d4af37; font-weight: bold; font-size: 1.1em; cursor: pointer; }
+  .bid-btns button:active { background: #d4af37; color: #000; }
+  #msg { text-align: center; padding: 8px; min-height: 30px; color: #f5d76e; font-weight: bold; }
+  #scorebar { display: flex; justify-content: center; gap: 20px; padding: 8px; background: #081a10; font-size: 0.9em; }
+  #scorebar span { color: #d4af37; }
+  .hidden { display: none !important; }
+  #gameOver { text-align: center; padding: 30px; }
+  #gameOver h2 { color: #d4af37; font-size: 1.8em; margin-bottom: 15px; }
+</style>
+</head>
+<body>
+<div class="nav">
+  <a href="/free.html">← Free Play</a>
+  <div class="logo">♠️ HIT HIGH BREAKER</div>
+  <a href="/">Home</a>
+</div>
+<div id="scorebar">
+  <span>Us: <b id="scoreUs">0</b></span>
+  <span>Them: <b id="scoreThem">0</b></span>
+  <span>Hand <b id="handNum">1</b>/5</span>
+</div>
+<div id="msg">Dealing...</div>
+
+<div id="table" class="hidden">
+  <div class="player-area top"><div class="pname">🤖 Marcus <span class="bid hidden"></span></div><div class="trick-count"></div></div>
+  <div class="player-area left"><div class="pname">🤖 Lisa <span class="bid hidden"></span></div><div class="trick-count"></div></div>
+  <div class="player-area right"><div class="pname">🤖 Dre <span class="bid hidden"></span></div><div class="trick-count"></div></div>
+  <div class="player-area bottom"><div class="pname">You <span class="bid hidden"></span></div><div class="trick-count"></div></div>
+  <div class="center" id="center"></div>
+</div>
+
+<div id="bidPanel" class="hidden">
+  <h3>Your Bid</h3>
+  <p style="color:#aaa;font-size:0.85em">How many tricks will you + Marcus take?</p>
+  <div class="bid-btns" id="bidBtns"></div>
+</div>
+
+<div id="hand"></div>
+<div id="controls"></div>
+<div id="gameOver" class="hidden"></div>
+
+<script src="/common.js"></script>
+<script>
+// ===== Spades game: You + Marcus (AI) vs Lisa + Dre (AI), 5 hands =====
+const SUITS = ['♠','♥','♦','♣'];
+const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const NAMES = ['You','Marcus','Lisa','Dre']; // 0=you(bottom), 1=top, 2=left, 3=right
+const POS = ['bottom','top','left','right'];
+
+let deck = [], hands = [[],[],[],[]], bids = [0,0,0,0], tricks = [0,0,0,0];
+let scores = { us: 0, them: 0 }, handNum = 1, leader = 0, currentTrick = [];
+let spadesBroken = false, gameActive = false, playerTurn = false;
+
+const cardVal = c => RANKS.indexOf(c.rank);
+const cardStr = c => c.rank + c.suit;
+const isRed = c => c.suit === '♥' || c.suit === '♦';
+
+function newDeck() {
+  deck = [];
+  for (const s of SUITS) for (const r of RANKS) deck.push({ suit: s, rank: r });
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+}
+
+function deal() {
+  newDeck();
+  hands = [[],[],[],[]];
+  for (let i = 0; i < 52; i++) hands[i % 4].push(deck[i]);
+  hands.forEach(h => h.sort((a,b) => (SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit)) || (cardVal(a) - cardVal(b))));
+  bids = [0,0,0,0]; tricks = [0,0,0,0]; spadesBroken = false; currentTrick = [];
+}
+
+function aiBid(hand) {
+  let b = 0;
+  for (const c of hand) {
+    if (c.suit === '♠' && cardVal(c) >= RANKS.indexOf('J')) b += 1;
+    else if (c.suit !== '♠' && cardVal(c) >= RANKS.indexOf('A')) b += 1;
+    else if (c.suit !== '♠' && cardVal(c) >= RANKS.indexOf('K') && hand.filter(x => x.suit === c.suit).length <= 3) b += 0.5;
+  }
+  const spades = hand.filter(c => c.suit === '♠').length;
+  if (spades >= 4) b += 1;
+  return Math.max(1, Math.min(7, Math.round(b)));
+}
+
+function setMsg(t) { document.getElementById('msg').textContent = t; }
+
+function renderHand() {
+  const el = document.getElementById('hand');
+  el.innerHTML = '';
+  const leadSuit = currentTrick.length ? currentTrick[0].card.suit : null;
+  const hasLead = leadSuit ? hands[0].some(c => c.suit === leadSuit) : false;
+  hands[0].forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'card' + (isRed(c) ? ' red' : '');
+    d.innerHTML = `<div>${c.rank}</div><div class="suit">${c.suit}</div>`;
+    let playable = false;
+    if (playerTurn && gameActive) {
+      if (!leadSuit) {
+        playable = c.suit !== '♠' || spadesBroken || !hands[0].some(x => x.suit !== '♠');
+      } else {
+        playable = !hasLead || c.suit === leadSuit;
+      }
+    }
+    if (playable) { d.classList.add('playable'); d.onclick = () => playCard(0, i); }
+    el.appendChild(d);
+  });
+}
+
+function renderTable() {
+  document.getElementById('scoreUs').textContent = scores.us;
+  document.getElementById('scoreThem').textContent = scores.them;
+  document.getElementById('handNum').textContent = Math.min(handNum, 5);
+  const areas = document.querySelectorAll('.player-area');
+  const order = [1, 2, 3, 0]; // top, left, right, bottom
+  areas.forEach((area, ai) => {
+    const pi = order[ai];
+    const bidEl = area.querySelector('.bid');
+    if (bids[pi] > 0 || ai === 3) { bidEl.textContent = bids[pi]; bidEl.classList.remove('hidden'); }
+    area.querySelector('.trick-count').textContent = `Tricks: ${tricks[pi]}`;
+  });
+  const center = document.getElementById('center');
+  center.innerHTML = '';
+  currentTrick.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'played-card ' + POS[t.player] + (isRed(t.card) ? ' red' : '');
+    d.innerHTML = `<div>${t.card.rank}</div><div>${t.card.suit}</div>`;
+    center.appendChild(d);
+  });
+}
+
+function aiChooseCard(pi) {
+  const hand = hands[pi];
+  const leadSuit = currentTrick.length ? currentTrick[0].card.suit : null;
+  let options;
+  if (!leadSuit) {
+    const nonSpades = hand.filter(c => c.suit !== '♠');
+    options = (spadesBroken || nonSpades.length === 0) ? hand : nonSpades;
+    // lead highest non-spade or lowest spade
+    options.sort((a,b) => cardVal(b) - cardVal(a));
+    return hand.indexOf(options[0]);
+  }
+  const follow = hand.filter(c => c.suit === leadSuit);
+  if (follow.length) {
+    // try to win cheaply: lowest winning card, else lowest
+    const trickCards = currentTrick.map(t => t.card);
+    const high = highestCard(trickCards, leadSuit);
+    const winners = follow.filter(c => cardVal(c) > cardVal(high.card));
+    const pick = winners.length ? winners.sort((a,b) => cardVal(a)-cardVal(b))[0]
+                                : follow.sort((a,b) => cardVal(a)-cardVal(b))[0];
+    return hand.indexOf(pick);
+  }
+  // can't follow: trump with lowest spade if can win, else dump lowest
+  const spades = hand.filter(c => c.suit === '♠');
+  if (spades.length) {
+    const trickCards = currentTrick.map(t => t.card);
+    const hasSpadePlayed = trickCards.some(c => c.suit === '♠');
+    if (!hasSpadePlayed || Math.random() < 0.5) {
+      const pick = spades.sort((a,b) => cardVal(a)-cardVal(b))[0];
+      return hand.indexOf(pick);
+    }
+  }
+  const pick = hand.slice().sort((a,b) => cardVal(a)-cardVal(b))[0];
+  return hand.indexOf(pick);
+}
+
+function highestCard(cards, leadSuit) {
+  let best = cards[0];
+  for (const c of cards) {
+    if (c.suit === '♠' && best.suit !== '♠') best = c;
+    else if (c.suit === best.suit && cardVal(c) > cardVal(best.cardVal !== undefined ? best : best)) best = c;
+  }
+  // simpler: recompute properly
+  let win = cards[0];
+  for (const c of cards) {
+    const cSpade = c.suit === '♠', wSpade = win.suit === '♠';
+    if (cSpade && !wSpade) win = c;
+    else if (cSpade === wSpade && c.suit === win.suit && cardVal(c) > cardVal(win)) win = c;
+    else if (!cSpade && !wSpade && c.suit === leadSuit && win.suit === leadSuit && cardVal(c) > cardVal(win)) win = c;
+  }
+  return win;
+}
+
+function playCard(pi, ci) {
+  const card = hands[pi].splice(ci, 1)[0];
+  if (card.suit === '♠') spadesBroken = true;
+  currentTrick.push({ player: pi, card });
+  renderTable(); renderHand();
+  if (currentTrick.length === 4) {
+    setTimeout(finishTrick, 900);
+  } else {
+    setTimeout(nextTurn, 500);
+  }
+}
+
+function finishTrick() {
+  const leadSuit = currentTrick[0].card.suit;
+  let winIdx = 0;
+  for (let i = 1; i < 4; i++) {
+    const c = currentTrick[i].card, w = currentTrick[winIdx].card;
+    const cS = c.suit === '♠', wS = w.suit === '♠';
+    if ((cS && !wS) || (cS === wS && c.suit === w.suit && cardVal(c) > cardVal(w))) winIdx = i;
+  }
+  const winner = currentTrick[winIdx].player;
+  tricks[winner]++;
+  const wName = NAMES[winner];
+  setMsg(`${wName} takes the trick!`);
+  currentTrick = [];
+  leader = winner;
+  renderTable();
+  if (hands[0].length === 0) {
+    setTimeout(scoreHand, 1200);
+  } else {
+    setTimeout(nextTurn, 800);
+  }
+}
+
+function nextTurn() {
+  const pi = (leader + currentTrick.length) % 4;
+  if (pi === 0) {
+    playerTurn = true;
+    setMsg('Your turn — tap a highlighted card');
+    renderHand();
+  } else {
+    playerTurn = false;
+    setMsg(`${NAMES[pi]} is thinking...`);
+    setTimeout(() => {
+      const ci = aiChooseCard(pi);
+      playCard(pi, ci);
+    }, 700);
+  }
+}
+
+function scoreHand() {
+  const usBid = bids[0] + bids[1], usTricks = tricks[0] + tricks[1];
+  const themBid = bids[2] + bids[3], themTricks = tricks[2] + tricks[3];
+  let usPts = usTricks >= usBid ? usBid * 10 + (usTricks - usBid) : -usBid * 10;
+  let themPts = themTricks >= themBid ? themBid * 10 + (themTricks - themBid) : -themBid * 10;
+  scores.us += usPts; scores.them += themPts;
+  setMsg(`Hand ${handNum}: We ${usTricks}/${usBid} (${usPts >= 0 ? '+' : ''}${usPts}) — They ${themTricks}/${themBid} (${themPts >= 0 ? '+' : ''}${themPts})`);
+  renderTable();
+  handNum++;
+  if (handNum > 5) {
+    setTimeout(endGame, 2000);
+  } else {
+    setTimeout(() => startHand(), 2500);
+  }
+}
+
+function endGame() {
+  gameActive = false;
+  const won = scores.us > scores.them;
+  const el = document.getElementById('gameOver');
+  el.classList.remove('hidden');
+  document.getElementById('table').classList.add('hidden');
+  document.getElementById('hand').innerHTML = '';
+  el.innerHTML = `
+    <h2>${won ? '🏆 YOU WIN!' : '😞 You lose'}</h2>
+    <p style="font-size:1.3em;margin:10px 0">Us: ${scores.us} — Them: ${scores.them}</p>
+    <p style="color:#aaa;margin-bottom:20px">${won ? 'Nice playing! Your $1.00 ad earning is safe.' : 'Better luck next time!'}</p>
+    <button class="btn" onclick="location.href='/free.html'">Play Again (Watch Ad)</button>
+    <button class="btn" onclick="location.href='/'" style="background:#333;color:#d4af37">Home</button>`;
+  setMsg('');
+}
+
+function startHand() {
+  deal();
+  document.getElementById('table').classList.remove('hidden');
+  document.getElementById('gameOver').classList.add('hidden');
+  // AI bids
+  bids[1] = aiBid(hands[1]); bids[2] = aiBid(hands[2]); bids[3] = aiBid(hands[3]);
+  renderTable();
+  // player bid
+  const panel = document.getElementById('bidPanel');
+  panel.classList.remove('hidden');
+  const btns = document.getElementById('bidBtns');
+  btns.innerHTML = '';
+  setMsg('Place your bid');
+  const sug = aiBid(hands[0]);
+  for (let i = 0; i <= 7; i++) {
+    const b = document.createElement('button');
+    b.textContent = i;
+    if (i === sug) { b.style.background = '#d4af37'; b.style.color = '#000'; }
+    b.onclick = () => {
+      bids[0] = i;
+      panel.classList.add('hidden');
+      gameActive = true;
+      leader = 0;
+      renderTable();
+      setMsg('You lead the first trick');
+      nextTurn();
+    };
+    btns.appendChild(b);
+  }
+  renderHand();
+}
+
+// Start
+startHand();
+</script>
+</body>
+</html>
