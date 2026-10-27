@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS game_tokens (
 
 CREATE TABLE IF NOT EXISTS payouts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  tournament_id INTEGER NOT NULL REFERENCES tournaments(id),
+  tournament_id INTEGER REFERENCES tournaments(id),
   user_id INTEGER NOT NULL REFERENCES users(id),
   amount_cents INTEGER NOT NULL,
   method TEXT NOT NULL CHECK (method IN ('paypal','cashapp')),
@@ -92,6 +92,34 @@ CREATE TABLE IF NOT EXISTS free_plays (
   created_at TEXT DEFAULT (datetime('now'))
 );
 `);
+
+// Migration: older databases created payouts.tournament_id as NOT NULL, but ad
+// cashouts have no tournament. Relax the constraint if it is still in place.
+try {
+  const cols = db.prepare(`PRAGMA table_info(payouts)`).all();
+  const tcol = cols.find(c => c.name === 'tournament_id');
+  if (tcol && tcol.notnull === 1) {
+    db.exec(`
+      CREATE TABLE payouts_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tournament_id INTEGER REFERENCES tournaments(id),
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        amount_cents INTEGER NOT NULL,
+        method TEXT NOT NULL CHECK (method IN ('paypal','cashapp')),
+        destination TEXT,
+        status TEXT DEFAULT 'pending' CHECK (status IN ('pending','sent','paid','failed','pending_manual','pending_info')),
+        paypal_batch_id TEXT,
+        note TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        paid_at TEXT
+      );
+      INSERT INTO payouts_new (id, tournament_id, user_id, amount_cents, method, destination, status, paypal_batch_id, note, created_at, paid_at)
+        SELECT id, tournament_id, user_id, amount_cents, method, destination, status, paypal_batch_id, note, created_at, paid_at FROM payouts;
+      DROP TABLE payouts;
+      ALTER TABLE payouts_new RENAME TO payouts;
+    `);
+  }
+} catch (e) { /* migration is best-effort; fresh DBs already have the relaxed schema */ }
 
 // ---- Users ----
 const getUserByEmail = (email) => db.prepare('SELECT * FROM users WHERE email = ?').get(email);
