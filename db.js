@@ -239,7 +239,7 @@ function listPayouts(status) {
   const args = status ? [status] : [];
   return db.prepare(`
     SELECT p.*, u.username, u.paypal_email, u.cashtag, t.name AS tournament_name
-    FROM payouts p JOIN users u ON u.id = p.user_id JOIN tournaments t ON t.id = p.tournament_id
+    FROM payouts p JOIN users u ON u.id = p.user_id LEFT JOIN tournaments t ON t.id = p.tournament_id
     ${where} ORDER BY p.id DESC
   `).all(...args);
 }
@@ -271,7 +271,7 @@ function recordFreePlay(userId, adViewId) {
 }
 function getAdEarnings(userId) {
   const row = db.prepare(`SELECT COALESCE(SUM(earnings_cents),0) AS total_cents, COUNT(*) AS views FROM ad_views WHERE user_id = ?`).get(userId);
-  const paid = db.prepare(`SELECT COALESCE(SUM(amount_cents),0) AS paid_cents FROM payouts WHERE user_id = ? AND note LIKE 'ad-%' AND status IN ('sent','paid','pending_manual')`).get(userId);
+  const paid = db.prepare(`SELECT COALESCE(SUM(amount_cents),0) AS paid_cents FROM payouts WHERE user_id = ? AND note LIKE 'ad-%' AND status IN ('pending','sent','paid','pending_manual')`).get(userId);
   return { total_cents: row.total_cents, views: row.views, paid_cents: paid.paid_cents, balance_cents: row.total_cents - paid.paid_cents };
 }
 function getAdLeaderboard(limit) {

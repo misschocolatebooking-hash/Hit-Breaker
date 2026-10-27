@@ -40,6 +40,8 @@
   <div class="earnings-card">
     <div class="amount" id="earnings">$0.00</div>
     <div class="label">Your ad earnings (<span id="adViews">0</span> ads watched)</div>
+    <button class="btn" id="cashoutBtn" style="margin-top:12px; font-size:0.95em; padding:10px 25px;">💸 Cash Out (min $5.00)</button>
+    <div id="cashoutMsg" style="margin-top:10px; min-height:1.4em; font-size:0.9em;"></div>
   </div>
 
   <div id="step1">
@@ -84,6 +86,26 @@ async function loadEarnings() {
   } catch {}
 }
 loadEarnings();
+
+document.getElementById('cashoutBtn').onclick = async () => {
+  const btn = document.getElementById('cashoutBtn');
+  const msg = document.getElementById('cashoutMsg');
+  btn.disabled = true;
+  msg.style.color = '#aaa';
+  msg.textContent = 'Processing...';
+  try {
+    const r = await api('/api/ads/cashout', 'POST', {});
+    msg.style.color = '#4ade80';
+    msg.textContent = r.method === 'paypal'
+      ? `✅ $${(r.amount_cents / 100).toFixed(2)} sent to your PayPal!`
+      : `✅ $${(r.amount_cents / 100).toFixed(2)} queued — you'll receive it via Cash App shortly.`;
+    loadEarnings();
+  } catch (e) {
+    msg.style.color = '#f87171';
+    msg.textContent = '⚠️ ' + (e.message || 'Cashout failed');
+  }
+  btn.disabled = false;
+};
 
 document.getElementById('watchAdBtn').onclick = async () => {
   const btn = document.getElementById('watchAdBtn');

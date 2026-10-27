@@ -16,6 +16,12 @@
   <div id="msg" class="alert err hidden"></div>
 
   <div class="card">
+    <h3>Ad Earnings</h3>
+    <table><thead><tr><th>Player</th><th>Ads Watched</th><th>Earnings</th></tr></thead>
+    <tbody id="adRows"><tr><td colspan="3">Loading…</td></tr></tbody></table>
+  </div>
+
+  <div class="card">
     <h3>Cash App — Manual Payout Queue</h3>
     <p style="color:#8a744a;font-size:.9rem">Send these via Cash App yourself, then click "Mark Paid".</p>
     <table><thead><tr><th>Player</th><th>$Cashtag</th><th>Amount</th><th>Tournament</th><th></th></tr></thead>
@@ -76,6 +82,11 @@ async function load() {
   document.getElementById('uRows').innerHTML = users.map((x) => `
     <tr><td>${esc(x.username)}</td><td>${esc(x.email)}</td><td>${x.payout_method}</td>
     <td>${esc(x.paypal_email || x.cashtag || '—')}</td><td>${x.is_admin ? '✓' : ''}</td></tr>`).join('');
+
+  const adStats = await api('/api/admin/ad-earnings');
+  document.getElementById('adRows').innerHTML = adStats.length ? adStats.map((a) => `
+    <tr><td>${esc(a.username)}</td><td>${a.views}</td><td>${money(a.balance_cents)}</td></tr>`).join('')
+    : '<tr><td colspan="3">No ad earnings yet.</td></tr>';
 }
 async function markPaid(id) {
   if (!confirm('Confirm you sent this Cash App payment manually?')) return;

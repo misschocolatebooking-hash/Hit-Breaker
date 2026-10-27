@@ -279,6 +279,45 @@ app.post('/api/free/start', requireLogin, (req, res) => {
 app.get('/api/ads/earnings', requireLogin, (req, res) => {
   res.json(db.getAdEarnings(req.session.userId));
 });
+const AD_CASHOUT_MIN_CENTS = 500; // $5.00 minimum cashout
+app.post('/api/ads/cashout', requireLogin, async (req, res) => {
+  try {
+    const bal = db.getAdEarnings(req.session.userId);
+    if (bal.balance_cents < AD_CASHOUT_MIN_CENTS) {
+      return res.status(400).json({ error: `Minimum $${(AD_CASHOUT_MIN_CENTS / 100).toFixed(2)} to cash out (you have $${(bal.balance_cents / 100).toFixed(2)})` });
+    }
+    const user = db.getUserById(req.session.userId);
+    const method = user.payout_method === 'cashapp' ? 'cashapp' : 'paypal';
+    const destination = method === 'cashapp' ? user.cashtag : user.paypal_email;
+    if (!destination) {
+      return res.status(400).json({ error: method === 'cashapp'
+        ? 'Add your Cash App tag in your profile first'
+        : 'Add your PayPal email in your profile first' });
+    }
+    const amount = bal.balance_cents;
+    const payoutId = db.createPayout({
+      tournament_id: null, user_id: req.session.userId,
+      amount_cents: amount, method, destination,
+      status: 'pending', note: 'ad-cashout'
+    });
+    if (method === 'paypal') {
+      try {
+        const batch = await paypal.sendPayoutBatch([
+          { payoutId, email: destination, cents: amount, note: 'Hit High Breaker ad earnings cashout' }
+        ]);
+        db.markPayoutPaid(payoutId, batch.payout_batch_id);
+        return res.json({ ok: true, amount_cents: amount, method: 'paypal', status: 'sent' });
+      } catch (e) {
+        db.markPayoutFailed(payoutId, e.message);
+        return res.status(502).json({ error: 'PayPal payout failed, nothing was charged: ' + e.message });
+      }
+    }
+    db.db.prepare(`UPDATE payouts SET status = 'pending_manual' WHERE id = ?`).run(payoutId);
+    return res.json({ ok: true, amount_cents: amount, method: 'cashapp', status: 'pending_manual' });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
 
 // ---- profile ----
 app.get('/api/profile', requireLogin, (req, res) => {
@@ -303,6 +342,10 @@ app.post('/api/admin/payouts/:id/mark-paid', requireLogin, requireAdmin, (req, r
   res.json({ ok: true });
 });
 app.get('/api/admin/users', requireLogin, requireAdmin, (req, res) => res.json(db.listUsers()));
+app.get('/api/admin/ad-earnings', requireLogin, requireAdmin, (req, res) => {
+  const rows = db.getAdLeaderboard(100).map(r => ({ username: r.username, views: r.views, balance_cents: r.earnings_cents }));
+  res.json(rows);
+});
 
 // ---------- frontend ----------
 app.use(express.static(__dirname));
