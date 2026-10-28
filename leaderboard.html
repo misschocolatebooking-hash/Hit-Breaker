@@ -17,6 +17,7 @@
     <button class="btn ghost active" data-t="">All Time</button>
     <button class="btn ghost" data-t="/daily">Today</button>
     <button class="btn ghost" data-t="/weekly">This Week</button>
+    <button class="btn ghost" data-t="free">Hit High Breaker</button>
   </div>
   <div class="card"><table>
     <thead><tr><th>#</th><th>Player</th><th>Best Score</th><th>Accuracy</th><th>Level</th></tr></thead>
@@ -25,7 +26,18 @@
 </div>
 <script src="/common.js"></script>
 <script>
+const head = document.querySelector('thead tr');
 async function load(path) {
+  if (path === 'free') {
+    head.innerHTML = '<tr><th>#</th><th>Player</th><th>Ad Views</th><th>Earnings</th><th>Best Score</th></tr>';
+    const rows = await api('/api/leaderboard/free');
+    document.getElementById('rows').innerHTML = rows.length ? rows.map((r, i) => `
+      <tr><td>${i + 1}</td><td>${esc(r.username)}</td><td>${r.views}</td>
+      <td>$${(r.earnings_cents / 100).toFixed(2)}</td><td>${Number(r.best_score).toLocaleString()}</td></tr>`).join('')
+      : '<tr><td colspan="5">No free play yet — be the first!</td></tr>';
+    return;
+  }
+  head.innerHTML = '<tr><th>#</th><th>Player</th><th>Best Score</th><th>Accuracy</th><th>Level</th></tr>';
   const rows = await api('/api/leaderboard' + path);
   document.getElementById('rows').innerHTML = rows.length ? rows.map((r, i) => `
     <tr><td>${i + 1}</td><td>${esc(r.username)}</td><td>${r.best_score.toLocaleString()}</td>
